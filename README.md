@@ -84,16 +84,6 @@ Both algorithms were benchmarked rigorously — same instances, same fitness bud
 
 ---
 
-## 🐛 Bug Found in Reference Implementation
-
-During validation against a [published Python port](https://github.com/mjBM/Quantum-Evolutionary-Algorithm-Knapsack-Python-) of Han & Kim (2002), we discovered a **bug in the rotation gate formula**:
-
-- **Python port (buggy):** `(2*sin*cos > 0) - 1` → gives {0, -1}
-- **MATLAB original (correct):** `2*(sin*cos > 0) - 1` → gives {+1, -1}
-
-A single misplaced parenthesis caused **zero rotation** in the first quadrant. With the buggy formula, QIEA appeared to lose to GA. With the correct formula, both algorithms perform identically.
-
----
 
 ## 🚀 Quick Start
 
