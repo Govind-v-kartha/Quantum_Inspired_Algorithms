@@ -21,13 +21,12 @@ Quantum_Inspired_Algorithms/
 │   └── Quantum_Inspired/            ← Quantum-Inspired EA
 │       ├── README.md                 ← Detailed QIEA explanation
 │       └── qiea.py                   ← Standalone QIEA code
-│
-└── Notebook/                         ← Combined comparison
-    ├── README.md                     ← What the notebook implements
-    ├── QIEA_vs_GA_Knapsack.ipynb     ← Full benchmark notebook
-    ├── convergence_plots.png         ← Convergence curves
-    ├── boxplots.png                  ← Final fitness distributions
-    └── gap_chart.png                 ← Optimality gap comparison
+│   └── QIEA_vs_GA_Analysis/         ← Combined comparison
+│       ├── README.md                ← What the notebook implements
+│       ├── QIEA_vs_GA_Knapsack.ipynb← Full benchmark notebook
+│       ├── convergence_plots.png    ← Convergence curves
+│       ├── boxplots.png             ← Final fitness distributions
+│       └── gap_chart.png            ← Optimality gap comparison
 ```
 
 ---
@@ -80,7 +79,7 @@ Both algorithms were benchmarked rigorously — same instances, same fitness bud
 
 **No statistically significant difference** — QIEA matches GA's solution quality using only 10 individuals vs GA's 50.
 
-→ [See full analysis in the Notebook](Notebook/README.md)
+→ [See full analysis in the Notebook](QIEA/QIEA_vs_GA_Analysis/README.md)
 
 ---
 
@@ -99,7 +98,7 @@ python QIEA/Classical/classical_ga.py
 python QIEA/Quantum_Inspired/qiea.py
 
 # Open the full comparison notebook
-jupyter notebook Notebook/QIEA_vs_GA_Knapsack.ipynb
+jupyter notebook QIEA/QIEA_vs_GA_Analysis/QIEA_vs_GA_Knapsack.ipynb
 ```
 
 ### Requirements

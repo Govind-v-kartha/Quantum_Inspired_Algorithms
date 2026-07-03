@@ -10,6 +10,9 @@ This directory contains standalone, pure-Python implementations of the two optim
 - **[Quantum_Inspired/](Quantum_Inspired/)**
   Contains `qiea.py`, demonstrating the Quantum-Inspired Evolutionary Algorithm using a Q-bit (probabilistic amplitude) representation and a rotation gate update mechanism.
 
+- **[QIEA_vs_GA_Analysis/](QIEA_vs_GA_Analysis/)**
+  Contains a Jupyter notebook providing a full statistical benchmark and comparison between the two approaches on larger problem instances.
+
 ## 🧠 Why Two Folders?
 
 While both algorithms solve the exact same problem, their approaches to maintaining and exploring the search space are fundamentally different. 
