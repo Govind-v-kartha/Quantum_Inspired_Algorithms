@@ -1,35 +1,129 @@
-# 🔬 Knapsack Benchmarks: QIEA vs GA
+# 🔬 Statistical Benchmark: QIEA vs GA on 0/1 Knapsack
 
-This folder contains a comprehensive, statistical benchmark comparing the Quantum-Inspired Evolutionary Algorithm (QIEA) with the Classical Genetic Algorithm (GA) on larger instances of the 0/1 Knapsack Problem.
+This folder contains a comprehensive, statistical benchmark comparing the **Quantum-Inspired Evolutionary Algorithm (QIEA)** with the **Classical Genetic Algorithm (GA)** on the classic 0/1 Knapsack Problem.
 
-## 📓 The Notebook
-The main file is `QIEA_vs_GA_Knapsack.ipynb`. It is a self-contained Jupyter notebook that provides:
-1. **Implementation from scratch** of both QIEA and GA.
-2. **Dynamic Programming (DP) solver** to calculate the absolute ground-truth optimal solutions for the generated knapsack problems.
-3. **Rigorous experiment harness** that runs both algorithms over multiple independent trials to collect statistically valid results.
-4. **Data analysis and visualization** of the results, including convergence plots, boxplots of fitness distributions, and gap-to-optimal charts.
+While the standalone scripts in the parent directories demonstrate these algorithms on a simple 5-item problem, this notebook scales up the complexity to rigorously test their exploration and exploitation capabilities.
 
-## 📊 What We Implemented & Tested
+---
 
-We scaled up the knapsack problem from a simple 5-item "movie snacks" problem to 20, 50, and 100-item synthetic instances. We evaluated both algorithms giving them the **same fitness evaluation budget** (to ensure a fair comparison of computational effort).
+## 📓 The Jupyter Notebook
+The main file is `QIEA_vs_GA_Knapsack.ipynb`. It is a fully self-contained Jupyter notebook that provides:
+1. **From-scratch implementations** of both QIEA and GA.
+2. **Dynamic Programming (DP) exact solver** to calculate the absolute ground-truth optimal solutions for all generated knapsack problems.
+3. **Rigorous experiment harness** that evaluates both algorithms under identical conditions.
+4. **Data analysis and statistical testing** (Mann-Whitney U tests) to compare the algorithms mathematically rather than just visually.
 
-- **Instance Sizes:** n=20, n=50, n=100 items
-- **GA Configuration:** Population of 50, tournament selection, 2-point crossover, bit-flip mutation.
-- **QIEA Configuration:** Population of 10, Q-bit representation, Han & Kim rotation gate update, local/global migration, H-gate clamping.
-- **Experiment Scale:** 30 independent trials per algorithm, per instance.
+---
 
-### Repair Mechanism
-Both algorithms use a shared **greedy repair function** to handle invalid solutions (over-budget). If a solution exceeds the knapsack capacity, items with the worst value-to-weight ratio are dropped, and then items that fit are greedily added back. This ensures all evaluated solutions are valid and comparable.
+## 🧩 The Problem Space
 
-## 📈 Key Findings
+We tested the algorithms on synthetic instances of the 0/1 Knapsack problem with varying sizes: **n = 20, 50, and 100 items**. 
+- Item weights and values were drawn uniformly from `[1, 100]`.
+- Knapsack capacity was set to exactly **50% of the total sum of all item weights**.
+- This creates a dense, constrained search space where greedy heuristics alone cannot guarantee the optimal solution.
 
-As detailed in the notebook's Discussion section, after validating our QIEA implementation against the published reference code (Han & Kim, 2002):
+---
 
-- **Both algorithms achieve excellent results**, finding solutions within 0.05% of the true DP-optimal across all instance sizes.
-- **Statistical Parity:** With our corrected rotation gate implementation, QIEA matches GA's solution quality perfectly, showing no statistically significant difference in final fitness outcomes (Mann-Whitney U tests yielded p-values > 0.3 across all instances).
-- **Efficiency:** QIEA achieves these results using **5× fewer individuals** (10 vs 50) by leveraging the implicit diversity of the Q-bit superposition state, demonstrating the power of quantum-inspired representations to explore effectively with small populations.
+## 🛠️ Algorithm Configurations
 
-## 🖼️ Included Visualizations
-- `convergence_plots.png`: Shows how quickly the algorithms hone in on the optimal solution over the course of the fitness evaluations.
-- `boxplots.png`: Displays the variance and consistency of the final fitness values found across the 30 trials.
-- `gap_chart.png`: A bar chart visualizing how close each algorithm gets to the 100% optimal DP solution.
+To ensure a fair comparison of computational effort, both algorithms were given the **exact same fitness evaluation budget** (e.g., max 10,000 evaluations).
+
+### Classical GA Setup
+- **Population:** 50 individuals
+- **Selection:** Tournament selection (k=3)
+- **Crossover:** 2-point crossover (rate = 0.8)
+- **Mutation:** Bit-flip mutation (rate = 1/n)
+- **Elitism:** Top 1 individual preserved
+
+### QIEA Setup
+- **Population:** 10 individuals (Q-bit vectors)
+- **Initialization:** All qubits at equal superposition ($\theta = \pi/4$)
+- **Rotation Gate:** Han & Kim (2002) formulation with $\Delta\theta = 0.05\pi$
+- **H-Gate:** Clamping applied to prevent total qubit collapse ($\epsilon = 0.01$)
+- **Migration:** Periodic sharing of the best-found solutions (local every 30 generations, global every 70 generations)
+
+### The Repair Mechanism
+Since crossover, mutation, and quantum observation often produce invalid (over-weight) solutions, both algorithms use a shared **greedy repair function**:
+1. **Drop phase:** Items with the worst value-to-weight ratio are dropped until the knapsack is under capacity.
+2. **Add-back phase:** Unselected items with the best value-to-weight ratio are greedily added back if they fit.
+
+---
+
+## 🐛 The Reference Bug & Rotation Gate Sensitivity
+
+During the validation of our QIEA implementation against a widely cited [Python port](https://github.com/mjBM/Quantum-Evolutionary-Algorithm-Knapsack-Python-) of Han & Kim's original MATLAB code, we discovered a **critical bug in the reference repository's rotation gate**.
+
+The rotation gate dictates how probabilities are updated. The correct MATLAB formulation uses:
+```matlab
+% Correct MATLAB formulation
+sign_factor = 2 * (sin(theta) * cos(theta) > 0) - 1
+```
+This evaluates to `{+1, -1}`, ensuring qubits are always rotated either towards or away from the target state.
+
+However, the Python port mistakenly placed the multiplier inside the comparison:
+```python
+# Buggy Python port
+sign_factor = (2 * sin(theta) * cos(theta) > 0) - 1
+```
+Because Booleans evaluate to `1` or `0`, this buggy formula yields `{0, -1}`. As a result, **no rotation occurs at all** when qubits are in the first quadrant (where they are all initialized). 
+
+When we ran the buggy version, QIEA performed significantly worse than GA. After discovering and fixing this operator precedence bug to match the MATLAB original, the performance of QIEA shifted dramatically, perfectly matching GA. This highlights the extreme sensitivity of Quantum-Inspired algorithms to the specific mechanics of the rotation gate.
+
+---
+
+## 📊 Key Findings & Results
+
+The experiment ran **30 independent trials** (different random seeds) for each algorithm at each instance size.
+
+| Instance | Algorithm | Mean Fitness | Best Found | Worst Found | Gap to DP Optimal | Mann-Whitney p-value |
+|----------|-----------|--------------|------------|-------------|-------------------|----------------------|
+| **n=20** | GA | 827.0 | 827 | 827 | 0.00% | 0.334 (Not Sig.) |
+| | QIEA | 826.9 | 827 | 825 | 0.01% | |
+| **n=50** | GA | 1848.3 | 1849 | 1848 | 0.04% | 0.790 (Not Sig.) |
+| | QIEA | 1848.3 | 1849 | 1848 | 0.04% | |
+| **n=100**| GA | 3810.0 | 3810 | 3810 | 0.00% | 1.000 (Not Sig.) |
+| | QIEA | 3810.0 | 3810 | 3810 | 0.00% | |
+
+### Conclusions
+1. **Statistical Parity:** There is no statistically significant difference in the final solution quality between QIEA and GA. Both achieve near-perfect optimality (< 0.05% gap).
+2. **Population Efficiency:** QIEA achieves these results using **5× fewer individuals** (10 vs 50). The probabilistic nature of the Q-bit superposition provides massive implicit diversity, allowing a very small population to explore the search space as effectively as a large classical population.
+
+---
+
+## 🖼️ Understanding the Visualizations
+
+### 1. Convergence Plots (`convergence_plots.png`)
+These line charts show how the "best fitness found so far" evolves over the total number of fitness evaluations. 
+- You will see QIEA and GA tracking each other nearly identically.
+- The dashed green line represents the absolute DP optimal limit.
+
+### 2. Final Fitness Boxplots (`boxplots.png`)
+These plots show the distribution of the final fitness values found across all 30 independent trials. 
+- A tight box indicates the algorithm consistently finds the exact same quality of solution every time it is run, regardless of the initial random seed.
+
+### 3. Optimality Gap (`gap_chart.png`)
+This bar chart shows the percentage difference between the algorithm's average result and the true mathematical optimum. Lower is better.
+
+---
+
+## 🚀 Running the Notebook
+
+To re-run the experiments or tweak the parameters yourself:
+
+```bash
+# Ensure dependencies are installed
+pip install numpy pandas matplotlib seaborn scipy jupyter
+
+# Launch Jupyter
+jupyter notebook QIEA_vs_GA_Knapsack.ipynb
+```
+
+**Note:** Depending on your machine, executing all 180 runs (30 trials × 3 sizes × 2 algorithms) takes about 45 to 60 seconds.
+
+---
+
+## 📚 References
+
+1. **Han, K.-H., & Kim, J.-H. (2002).** *Quantum-Inspired Evolutionary Algorithm for a Class of Combinatorial Optimization.* IEEE Transactions on Evolutionary Computation, 6(6), 580-593. [DOI: 10.1109/TEVC.2002.804320]
+2. **Reference Bug Discovery:** Validated against the implementation found at [mjBM/Quantum-Evolutionary-Algorithm-Knapsack-Python-](https://github.com/mjBM/Quantum-Evolutionary-Algorithm-Knapsack-Python-)
+3. **Goldberg, D.E. (1989).** *Genetic Algorithms in Search, Optimization, and Machine Learning.* Addison-Wesley.
